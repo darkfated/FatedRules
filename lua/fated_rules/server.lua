@@ -17,13 +17,11 @@ hook.Add('PlayerInitialSpawn', 'FatedRules.SendData', function(pl)
 	net.Send(pl)
 end)
 
-hook.Add('ShutDown', 'FatedRules.SaveData', function()
-	file.Write('fated_rules_cfg.txt', util.TableToJSON(FatedRules.data))
-end)
-
 net.Receive('FatedRules-ToServer', function(len, pl)
 	if pl:IsSuperAdmin() then
 		local tabl = net.ReadTable()
+
+		file.Write('fated_rules_cfg.txt', util.TableToJSON(tabl))
 
 		FatedRules.data = tabl
 
