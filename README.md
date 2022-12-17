@@ -1,8 +1,6 @@
 # FatedRules
 A system of customizable in-game rules
 
-*To work, use the [FatedUI library](https://github.com/darkfated/FatedUI)*
-
 ## Screenschots
 ![General view](https://user-images.githubusercontent.com/49955245/208238282-6ea3779b-72bc-45ae-8e40-e91338cdd5a3.png)
 ![Setting up a rule](https://user-images.githubusercontent.com/49955245/208238331-fd67d3ed-1ceb-40e0-a4f3-c98c48b25b7c.png)
