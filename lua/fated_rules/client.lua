@@ -1,14 +1,67 @@
+surface.CreateFont('FatedRules.Big', {
+	font = 'Roboto Regular',
+	size = 22,
+	weight = 300,
+	extended = true,
+})
+
+surface.CreateFont('FatedRules.Main', {
+	font = 'Roboto Regular',
+	size = 18,
+	weight = 300,
+	extended = true,
+})
+
 local color_white = Color(255,255,255)
+local color_panel = Color(45,45,45)
+local color_button = Color(20,20,20)
+local color_button_2 = Color(160,160,160)
+local color_button_text = Color(0,0,0)
+local color_button_text_2 = Color(219,219,219)
+local color_vbar = Color(63,66,102)
+
+local function PlaySound()
+	surface.PlaySound('garrysmod/ui_click.wav')
+end
+
+local function DrawPanel(pnl)
+	pnl.Paint = function(_, w, h)
+		draw.RoundedBox(6, 0, 0, w, h, color_panel)
+	end
+end
+
+local function DrawButton(btn, custom_color)
+	btn:SetFont('FatedRules.Main')
+	btn.Paint = function(slf, w, h)
+		if slf:IsHovered() then
+			slf:SetTextColor(color_button_text)
+		else
+			slf:SetTextColor(color_button_text_2)
+		end
+
+		draw.RoundedBox(6, 0, 0, w, h, slf:IsHovered() and color_button_2 or (custom_color and custom_color or color_button))
+	end
+end
+
+local function DrawSP(sp)
+	local vbar = sp:GetVBar()
+	vbar:SetWide(18)
+	vbar.Paint = nil
+	vbar.btnDown.Paint = nil
+	vbar.btnUp.Paint = nil
+	vbar.btnGrip.Paint = function(_, w, h)
+		draw.RoundedBox(6, 6, 0, w - 6, h, color_vbar)
+	end
+end
 
 local function SelectIconMenu(func, active_icon)
-	local menu = vgui.Create('fu-frame')
-	menu:SetSize(FatedUI.func.w(260), FatedUI.func.w(300))
+	local menu = vgui.Create('DFrame')
+	menu:SetSize(260, 290)
 	menu:Center()
 	menu:MakePopup()
 	menu:SetTitle('Выбор иконки')
-	menu:SetSettings(false)
 
-	local pan = vgui.Create('fu-panel', menu)
+	local pan = vgui.Create('DPanel', menu)
 	pan:Dock(FILL)
 	pan:DockPadding(6, 6, 6, 6)
 
@@ -24,40 +77,98 @@ local function SelectIconMenu(func, active_icon)
 	IconBrowser:GetVBar():SetWide(0)
 	IconBrowser:SelectIcon(active_icon)
 
-	local BtnNoIcon = vgui.Create('fu-button', pan)
+	local BtnNoIcon = vgui.Create('DButton', pan)
 	BtnNoIcon:Dock(BOTTOM)
 	BtnNoIcon:DockMargin(0, 6, 0, 0)
 	BtnNoIcon:SetText('Без иконки')
-	BtnNoIcon:Rounded(false, false, true, true)
 	BtnNoIcon.DoClick = function()
 		func('')
 
 		menu:Remove()
 	end
+
+	DrawButton(BtnNoIcon)
 end
 
 function FatedRules.Open()
-	FatedRules.menu = vgui.Create('fu-frame')
-	FatedRules.menu:SetSize(FatedUI.func.w(700), FatedUI.func.h(600))
+	FatedRules.menu = vgui.Create('DFrame')
+	FatedRules.menu:SetSize(700, 600)
 	FatedRules.menu:Center()
 	FatedRules.menu:MakePopup()
 	FatedRules.menu:SetTitle('Правила сервера')
+	FatedRules.menu:SetSizable(true)
 
-	local CategoryPanel = vgui.Create('fu-panel', FatedRules.menu)
+	local CategoryPanel = vgui.Create('DPanel', FatedRules.menu)
 	CategoryPanel:Dock(LEFT)
-	CategoryPanel:SetWide(FatedUI.func.w(200))
+	CategoryPanel:SetWide(200)
 	CategoryPanel:DockPadding(6, 6, 6, 6)
 
-	local MainPanel = vgui.Create('fu-panel', FatedRules.menu)
+	DrawPanel(CategoryPanel)
+
+	local MainPanel = vgui.Create('DPanel', FatedRules.menu)
 	MainPanel:Dock(FILL)
 	MainPanel:DockMargin(6, 0, 0, 0)
 	MainPanel:DockPadding(6, 6, 6, 6)
 
-	CategoryPanel.sp = vgui.Create('fu-sp', CategoryPanel)
+	DrawPanel(MainPanel)
+
+	CategoryPanel.sp = vgui.Create('DScrollPanel', CategoryPanel)
 	CategoryPanel.sp:Dock(FILL)
 	CategoryPanel.sp:DockMargin(0, 0, 0, 6)
 
+	DrawSP(CategoryPanel.sp)
+
 	local data = table.Copy(FatedRules.data)
+
+	local function RuleCreate(tabl)
+		MainPanel:Clear()
+
+		local content_sp = vgui.Create('DScrollPanel', MainPanel)
+		content_sp:Dock(FILL)
+
+		DrawSP(content_sp)
+
+		local function CreateHeader(txt)
+			local header = vgui.Create('DPanel', content_sp)
+			header:Dock(TOP)
+			header:DockMargin(0, 0, 0, 6)
+			header:SetTall(30)
+			header.Paint = function(_, w, h)
+				draw.RoundedBox(6, 0, 0, w, h, tabl.color)
+
+				draw.SimpleText(txt, 'FatedRules.Big', 5, h * 0.5, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+			end
+		end
+
+		local function CreateText(txt, id)
+			local text = vgui.Create('DLabel', content_sp)
+			text:Dock(TOP)
+			text:DockMargin(0, 0, 0, 6)
+			text:SetText(txt)
+			text:SetFont('FatedRules.Main')
+			text:SetTextColor(color_white)
+			text:SetAutoStretchVertical(true)
+			text:SetWrap(true)
+			text:SetMouseInputEnabled(true)
+			text.DoRightClick = function()
+				local DM = DermaMenu()
+				DM:AddOption('Изменить содержание...', function()
+					Derma_StringRequest('Сменить содержание', 'Какое планируете поставить?', txt, function(s)
+						tabl[id] = s
+
+						RuleCreate(tabl)
+					end)
+				end):SetIcon('icon16/text_align_left.png')
+				DM:Open()
+			end
+		end
+
+		CreateHeader(tabl.rule)
+		CreateText(tabl.desc, 'desc')
+
+		CreateHeader('Наказание')
+		CreateText(tabl.punishment, 'punishment')
+	end
 
 	local function CreateCategoryList()
 		CategoryPanel.sp:Clear()
@@ -67,13 +178,13 @@ function FatedRules.Open()
 		for catID = 1, data_counts do
 			local cat_object = data[catID]
 
-			local cat = vgui.Create('fu-button', CategoryPanel.sp)
+			local cat = vgui.Create('DButton', CategoryPanel.sp)
 			cat:Dock(TOP)
 			cat:DockMargin(0, 0, 0, 6)
-			cat:SetTall(FatedUI.func.h(30))
+			cat:SetTall(30)
 			cat:SetText('')
 			cat.Paint = function(_, w, h)
-				draw.SimpleText(cat_object.category, 'fu.22', w * 0.5, h * 0.5, c, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+				draw.SimpleText(cat_object.category, 'FatedRules.Big', w * 0.5, h * 0.5, c, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 
 				if cat_object.icon != '' then
 					surface.SetDrawColor(color_white)
@@ -93,6 +204,8 @@ function FatedRules.Open()
 					}
 
 					CreateCategoryList()
+
+					PlaySound()
 				end):SetIcon('icon16/add.png')
 				DM:AddOption('Переименовать категорию', function()
 					Derma_StringRequest('Смена названия категории', 'На что планируете сменить?', cat_object.category, function(s)
@@ -117,6 +230,9 @@ function FatedRules.Open()
 					table.remove(data, catID)
 
 					CreateCategoryList()
+
+					PlaySound()
+					surface.PlaySound('')
 				end):SetIcon('icon16/delete.png')
 				DM:Open()
 			end
@@ -126,76 +242,16 @@ function FatedRules.Open()
 			for ruleID = 1, #cat_object.content do
 				local rule_object = cat_object.content[ruleID]
 
-				local rule = vgui.Create('fu-button', CategoryPanel.sp)
+				local rule = vgui.Create('DButton', CategoryPanel.sp)
 				rule:Dock(TOP)
 				rule:DockMargin(0, 0, 0, 6)
-				rule:SetTall(FatedUI.func.h(30))
+				rule:SetTall(30)
 				rule:SetText((cat_object.numbering and '#' .. ruleID .. ' ' or '') .. rule_object.rule)
-				rule:SetHoverColor(rule_object.color)
 
-				if ruleID == 1 and ruleID == cat_counts then
-					rule:Rounded(true, true, true, true)
-				elseif ruleID == 1 then
-					rule:Rounded(true, true, false, false)
-				elseif ruleID == cat_counts then
-					rule:Rounded(false, false, true, true)
-				end
-
-				local function RuleClick()
-					MainPanel:Clear()
-
-					local content_panel = vgui.Create('fu-panel', MainPanel)
-					content_panel:Dock(FILL)
-					content_panel:DockPadding(6, 6, 6, 6)
-					content_panel:Color(2)
-
-					local content_sp = vgui.Create('fu-sp', content_panel)
-					content_sp:Dock(FILL)
-
-					local function CreateHeader(txt)
-						local header = vgui.Create('fu-panel', content_sp)
-						header:Dock(TOP)
-						header:DockMargin(0, 0, 0, 6)
-						header:SetTall(FatedUI.func.h(30))
-						header.Paint = function(_, w, h)
-							draw.RoundedBox(6, 0, 0, w, h, rule_object.color)
-	
-							draw.SimpleText(txt, 'fu.26', 5, h * 0.5, color_white, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-						end
-					end
-
-					local function CreateText(txt, id)
-						local text = vgui.Create('DLabel', content_sp)
-						text:Dock(TOP)
-						text:DockMargin(0, 0, 0, 6)
-						text:SetText(txt)
-						text:SetFont('fu.24')
-						text:SetTextColor(color_white)
-						text:SetAutoStretchVertical(true)
-						text:SetWrap(true)
-						text:SetMouseInputEnabled(true)
-						text.DoRightClick = function()
-							local DM = DermaMenu()
-							DM:AddOption('Изменить содержание...', function()
-								Derma_StringRequest('Сменить содержание', 'Какое планируете поставить?', txt, function(s)
-									rule_object[id] = s
-
-									RuleClick()
-								end)
-							end):SetIcon('icon16/text_align_left.png')
-							DM:Open()
-						end
-					end
-
-					CreateHeader(rule_object.rule)
-					CreateText(rule_object.desc, 'desc')
-
-					CreateHeader('Наказание:')
-					CreateText(rule_object.punishment, 'punishment')
-				end
+				DrawButton(rule)
 
 				rule.DoClick = function()
-					RuleClick()
+					RuleCreate(rule_object)
 				end
 				rule:SetTooltip('ПКМ, чтобы отредактировать правило')
 				rule.DoRightClick = function()
@@ -220,6 +276,8 @@ function FatedRules.Open()
 						table.remove(cat_object.content, ruleID)
 	
 						CreateCategoryList()
+
+						PlaySound()
 					end):SetIcon('icon16/delete.png')
 					DM:Open()
 				end
@@ -229,12 +287,13 @@ function FatedRules.Open()
 
 	CreateCategoryList()
 
-	local BtnSave = vgui.Create('fu-button', CategoryPanel)
+	if data[1] and data[1].content[1] then
+		RuleCreate(data[1].content[1])
+	end
+
+	local BtnSave = vgui.Create('DButton', CategoryPanel)
 	BtnSave:Dock(BOTTOM)
-	BtnSave:SetTall(FatedUI.func.h(20))
-	BtnSave:SetColor(Color(79,158,79))
-	BtnSave:SetHoverColor(Color(108,201,108))
-	BtnSave:Rounded(true, true, true, true)
+	BtnSave:SetTall(20)
 	BtnSave:SetText('Сохранить')
 	BtnSave.DoClick = function()
 		net.Start('FatedRules-ToServer')
@@ -243,16 +302,15 @@ function FatedRules.Open()
 
 		CreateCategoryList()
 
-		FatedUI.func.Sound()
+		PlaySound()
 	end
 
-	local BtnAddCat = vgui.Create('fu-button', CategoryPanel)
+	DrawButton(BtnSave, Color(57,128,78))
+
+	local BtnAddCat = vgui.Create('DButton', CategoryPanel)
 	BtnAddCat:Dock(BOTTOM)
 	BtnAddCat:DockMargin(0, 0, 0, 6)
-	BtnAddCat:SetTall(FatedUI.func.h(20))
-	BtnAddCat:SetColor(Color(79,94,158))
-	BtnAddCat:SetHoverColor(Color(135,152,231))
-	BtnAddCat:Rounded(true, true, true, true)
+	BtnAddCat:SetTall(20)
 	BtnAddCat:SetText('Добавить категорию')
 	BtnAddCat.DoClick = function()
 		local new_id = #data + 1
@@ -265,7 +323,11 @@ function FatedRules.Open()
 		}
 
 		CreateCategoryList()
+
+		PlaySound()
 	end
+
+	DrawButton(BtnAddCat, Color(189,104,35))
 end
 
 concommand.Add('fated_rules_menu', function()
